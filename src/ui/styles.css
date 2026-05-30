@@ -1,0 +1,93 @@
+:root {
+  --fg: #e8edf4;
+  --muted: #8b97a8;
+  --accent: #4fd1c5;
+  --panel: rgba(18, 22, 30, 0.72);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0e1116;
+  color: var(--fg);
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+#app { position: fixed; inset: 0; }
+
+#scene { display: block; width: 100vw; height: 100vh; }
+
+#hud {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-width: 230px;
+  backdrop-filter: blur(6px);
+}
+
+.panel .title {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.row { display: flex; justify-content: space-between; font-size: 12px; line-height: 1.7; }
+.row span { color: var(--muted); }
+.row b { font-weight: 600; }
+
+.bar { display: flex; align-items: center; gap: 8px; font-size: 11px; margin: 3px 0; }
+.bar span { color: var(--muted); width: 56px; white-space: pre; }
+.bar em { width: 38px; text-align: right; font-style: normal; color: var(--fg); }
+.bar .track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+}
+.bar .track::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  bottom: -1px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.bar .fill { position: absolute; top: 0; height: 8px; background: var(--accent); border-radius: 4px; }
+
+.panel.meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); min-width: 230px; }
+
+#help {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  max-width: 320px;
+  backdrop-filter: blur(6px);
+}
+#help strong { color: var(--accent); font-weight: 600; letter-spacing: 0.05em; }
+#help .keys { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0; }
+#help .keys span:nth-child(odd) { color: var(--fg); }
+#help .keys span:nth-child(even) { color: var(--muted); }
+#help small { color: var(--muted); }

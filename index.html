@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Helicopter Apprenticeship-Learning Simulator</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='%23d6353b'/></svg>"
+    />
+    <link rel="stylesheet" href="/src/ui/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+      <div id="hud"></div>
+      <div id="help">
+        <strong>Manual flight</strong>
+        <div class="keys">
+          <span>W / S</span><span>collective (climb / descend)</span>
+          <span>↑ / ↓</span><span>longitudinal cyclic (pitch fwd / back)</span>
+          <span>← / →</span><span>lateral cyclic (roll left / right)</span>
+          <span>A / D</span><span>tail rotor (yaw left / right)</span>
+          <span>R</span><span>reset</span>
+          <span>C</span><span>cycle camera</span>
+        </div>
+        <small>A gamepad, if connected, maps to the two sticks.</small>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
