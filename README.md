@@ -5,10 +5,11 @@ An interactive, educational simulator built from Abbeel, Coates & Ng,
 (IJRR 2010). It aims to make the paper's three pillars — **physics**, **machine learning**, and
 **control** — tangible and visual, all running live in the browser.
 
-> **Status:** Phases 1–3 complete — faithful rigid-body flight dynamics with a stylized 3D view and
-> manual flight; an autonomous LQR autopilot (hover-hold, aerobatic maneuvers, wind recovery); and
-> apprenticeship trajectory learning (recover a clean intended path from noisy, time-warped demos).
-> System identification and the guided lesson layer are next.
+> **Status:** Phases 1–4 complete — faithful rigid-body flight dynamics with a stylized 3D view and
+> manual flight; an autonomous LQR autopilot (hover-hold, aerobatic maneuvers, wind recovery);
+> apprenticeship trajectory learning (recover a clean intended path from noisy, time-warped demos);
+> and system identification (re-learn the dynamics coefficients from flight data). A guided lesson
+> layer is next.
 
 ## Quick start
 
@@ -38,6 +39,7 @@ A connected gamepad maps to the two sticks (mode-2 RC layout).
 | `3` / `4` | in-place flip / loop |
 | `G` | inject a wind gust (watch the LQR recover) |
 | `L` | apprenticeship-learning demo (watch EM recover an intended path from noisy demos) |
+| `I` | system-identification demo (fit the dynamics from flight data; true vs predicted) |
 | `M` | back to manual (or just touch a flight key) |
 
 The autopilot is a Gauss–Newton LQR (the paper's control approach): an infinite-horizon LQR holds
@@ -66,5 +68,5 @@ See [`CLAUDE.md`](CLAUDE.md) for architecture, conventions, and the paper-sectio
 2. ✅ **Control** — Gauss–Newton LQR autopilot; hover-hold, aerobatic maneuvers, wind recovery.
 3. ✅ **Apprenticeship learning** — infer an intended trajectory from noisy, time-warped demos
    (EM + dynamic time warping); the visual centerpiece.
-4. **System identification** — fit the dynamics coefficients from logged flight data.
+4. ✅ **System identification** — fit the dynamics coefficients from logged flight data.
 5. **Educational layer** — equation overlays, plots, an airshow sequencer, guided lessons.

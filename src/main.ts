@@ -10,6 +10,7 @@ import { rotate, rotateInverse } from './math/quaternion';
 import { generateDemos, defaultDemoOptions } from './learning/synthetic';
 import { learnTrajectory, defaultLearnOptions, LearnResult } from './learning/trajectory';
 import { airshowPath, toXYZ } from './learning/airshow';
+import { coefficientError, generateExcitation, identify, rollout } from './learning/sysid';
 
 const params = defaultParams();
 const FIXED_DT = 1 / 100; // physics + control rate
@@ -72,6 +73,7 @@ const enterOrRegenLearning = (): void => {
   learnDemoCount = demos.length;
   scene.setLearningCurves(demos.map(toXYZ), toXYZ(truth), toXYZ(learn.snapshots[0]));
   scene.enterLearningView();
+  sysidMode = false;
   learningMode = true;
   snapIdx = 0;
   snapTimer = 0;
@@ -81,6 +83,59 @@ const exitLearning = (): void => {
   scene.exitLearningView();
   learningMode = false;
   learn = null;
+  toManual();
+};
+
+// --- System-identification mode. ---
+let sysidMode = false;
+let sysidSeed = 1;
+let sysidInfo: Parameters<typeof hud.showSysid>[0] | null = null;
+
+const enterOrRegenSysid = (): void => {
+  learningMode = false;
+  const logDt = 1 / 200;
+  const seconds = 12;
+  const log = generateExcitation(params, logDt, seconds, sysidSeed++);
+  const { params: fitted, residual } = identify(log, params);
+
+  // Compare true vs fitted on a bounded, readable test maneuver: the true model
+  // flies a square; the fitted model re-predicts it open-loop from the same
+  // controls (the paper's §3.3 simulation-accuracy criterion).
+  const start = { ...initialState(params), position: vec3(0, 0, -14) };
+  const ref = buildManeuver('square', params, start, logDt);
+  const truePath = ref.states.map((s) => s.position);
+  const predPath = rollout(fitted, start, ref.controls, logDt).map((s) => s.position);
+  let se = 0;
+  for (let i = 0; i < truePath.length; i++)
+    se += (truePath[i].x - predPath[i].x) ** 2 + (truePath[i].y - predPath[i].y) ** 2 + (truePath[i].z - predPath[i].z) ** 2;
+  const predRmse = Math.sqrt(se / truePath.length);
+
+  scene.setOverlayCurves([
+    { points: truePath, color: 0x5ee0a0, opacity: 0.95 },
+    { points: predPath, color: 0xf6b73c, opacity: 0.95 },
+  ]);
+  scene.enterLearningView();
+  sysidMode = true;
+  sysidInfo = {
+    coeffs: [
+      { name: 'C1 roll', fitted: fitted.C1, truth: params.C1 },
+      { name: 'C2 pitch', fitted: fitted.C2, truth: params.C2 },
+      { name: 'C3 yaw', fitted: fitted.C3, truth: params.C3 },
+      { name: 'C4 coll', fitted: fitted.C4, truth: params.C4 },
+      { name: 'Bx damp', fitted: fitted.Bx, truth: params.Bx },
+      { name: 'Az drag', fitted: fitted.Az, truth: params.Az },
+    ],
+    worstErrorPct: coefficientError(fitted, params) * 100,
+    residual,
+    predRmse,
+    seconds,
+  };
+};
+
+const exitSysid = (): void => {
+  scene.exitLearningView();
+  sysidMode = false;
+  sysidInfo = null;
   toManual();
 };
 
@@ -159,6 +214,19 @@ const frame = (now: number): void => {
           },
           fps,
         );
+      requestAnimationFrame(frame);
+      return;
+    }
+  }
+
+  // --- System-identification mode (static overlay: true vs fitted prediction). ---
+  if (input.consumeSysid()) enterOrRegenSysid();
+  if (sysidMode) {
+    if (input.consumeManual() || input.consumeReset()) {
+      exitSysid();
+    } else {
+      scene.renderLearning();
+      if (sysidInfo) hud.showSysid(sysidInfo, fps);
       requestAnimationFrame(frame);
       return;
     }

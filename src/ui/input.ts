@@ -25,6 +25,7 @@ export class InputController {
   private pendingGust = false;
   private pendingManual = false;
   private pendingLearning = false;
+  private pendingSysid = false;
   private pendingManeuver: ManeuverId | null = null;
 
   constructor(private readonly params: HeliParams) {
@@ -42,6 +43,7 @@ export class InputController {
       if (k === 'g') this.pendingGust = true;
       if (k === 'm') this.pendingManual = true;
       if (k === 'l') this.pendingLearning = true;
+      if (k === 'i') this.pendingSysid = true;
       if (MANEUVER_KEYS[k]) this.pendingManeuver = MANEUVER_KEYS[k];
     }
     // Track movement keys; prevent page scroll on arrows/space.
@@ -92,6 +94,12 @@ export class InputController {
   consumeLearning(): boolean {
     const v = this.pendingLearning;
     this.pendingLearning = false;
+    return v;
+  }
+
+  consumeSysid(): boolean {
+    const v = this.pendingSysid;
+    this.pendingSysid = false;
     return v;
   }
 

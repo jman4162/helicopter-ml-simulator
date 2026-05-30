@@ -36,6 +36,43 @@ export class Hud {
   private last = 0;
   constructor(private readonly el: HTMLElement) {}
 
+  /** Render the system-identification panel. */
+  showSysid(
+    info: {
+      coeffs: { name: string; fitted: number; truth: number }[];
+      worstErrorPct: number;
+      residual: number;
+      predRmse: number;
+      seconds: number;
+    },
+    fps: number,
+  ): void {
+    const rows = info.coeffs
+      .map(
+        (c) =>
+          `<div class="row"><span>${c.name}</span><b>${c.fitted.toFixed(2)} <em style="color:var(--muted)">vs ${c.truth.toFixed(2)}</em></b></div>`,
+      )
+      .join('');
+    this.el.innerHTML = `
+      <div class="panel">
+        <div class="title">SYSTEM IDENTIFICATION</div>
+        <div class="row"><span>fit from</span><b>${info.seconds}s excitation flight</b></div>
+        <div class="row"><span>worst coeff err</span><b class="on">${info.worstErrorPct.toFixed(1)}%</b></div>
+        <div class="row"><span>1-step residual</span><b>${info.residual.toFixed(3)}</b></div>
+        <div class="row"><span>predict err</span><b>${info.predRmse.toFixed(3)} m</b></div>
+      </div>
+      <div class="panel">
+        <div class="title">FITTED vs TRUE</div>
+        ${rows}
+      </div>
+      <div class="panel legend">
+        <div class="title">HELD-OUT TEST FLIGHT</div>
+        <div class="row"><span><i class="sw truth"></i> true model</span><b></b></div>
+        <div class="row"><span><i class="sw est"></i> fitted prediction</span><b></b></div>
+      </div>
+      <div class="panel meta"><span>I new flight · M exit</span><span>${fps.toFixed(0)} fps</span></div>`;
+  }
+
   /** Render the apprenticeship-learning panel (replaces flight panels in learning mode). */
   showLearning(info: LearningInfo, fps: number): void {
     const pct = info.naiveRmse > 0 ? (100 * (1 - info.rmse / info.naiveRmse)).toFixed(0) : '0';

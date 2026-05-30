@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 An interactive, educational **helicopter flight simulator** implementing Abbeel, Coates & Ng,
 *Autonomous Helicopter Aerobatics through Apprenticeship Learning* (IJRR 2010, the included
 `AbbeelCoatesNg_IJRR2010.pdf`). Web-first: TypeScript + Vite + Three.js, everything runs in the
-browser. The project is built in phases; **Phases 1–3 (physics + manual flight; autonomous
-LQR/MPC control; apprenticeship trajectory learning) are complete**, Phases 4–5 (system ID,
-lessons) upcoming.
+browser. The project is built in phases; **Phases 1–4 (physics + manual flight; autonomous
+LQR/MPC control; apprenticeship trajectory learning; system identification) are complete**,
+Phase 5 (guided lessons / equation overlays) upcoming.
 
 ## Commands
 
@@ -49,13 +49,17 @@ never import upward.
   constant-velocity RTS Kalman smoother, the `learnTrajectory` EM loop (records per-iteration
   snapshots + RMSE history), `pathRmse` (classic DTW, the path-similarity metric — note
   `dtwAlign` is NOT a valid metric for similar-length sequences). `airshow.ts`: the figure-eight
-  ground-truth path. Dimension-general; the demo runs on 3-D position.
+  ground-truth path. `sysid.ts`: system identification (§3.3) — rich-excitation flight log,
+  central-difference body accelerations, per-equation linear least squares (`identify`) recovering
+  A/B/C/D/D0, plus `predictionError` (open-loop simulation accuracy) and `rollout`; recovers the
+  true coefficients to ~1–3%. Dimension-general; the trajectory demo runs on 3-D position.
 - `src/ui/` — `input.ts` (keyboard momentary cyclic/yaw + held collective; RC-style gamepad;
-  autopilot keys H/1-4/G/M, learning key L), `hud.ts` (flight overlay + learning panel;
-  quaternion→Euler), `styles.css`.
+  autopilot keys H/1-4/G/M, learning key L, system-ID key I), `hud.ts` (flight overlay + learning
+  and system-ID panels; quaternion→Euler), `styles.css`.
 - `src/main.ts` — fixed-timestep (1/100 s) accumulator sim loop with an autopilot state machine
-  (manual / hover-hold / maneuver), wind-gust injector, soft ground floor, and a separate
-  apprenticeship-learning mode (L) that animates EM convergence; render once per rAF.
+  (manual / hover-hold / maneuver), wind-gust injector, soft ground floor, plus two overlay modes
+  that hide the heli and orbit a curve group: apprenticeship learning (L, animates EM convergence)
+  and system identification (I, true-vs-fitted prediction). Render once per rAF.
 
 ## Conventions that matter
 

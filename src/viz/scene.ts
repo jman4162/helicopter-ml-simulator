@@ -336,6 +336,19 @@ export class HeliScene {
     this.estimateLine.geometry = new THREE.BufferGeometry().setFromPoints(estimate.map((p) => toThreePosition(p)));
   }
 
+  /** Generic overlay: draw labeled colored curves (used by the system-ID view). */
+  setOverlayCurves(curves: { points: { x: number; y: number; z: number }[]; color: number; opacity: number }[]): void {
+    this.clearLearning();
+    for (const c of curves) this.learningGroup.add(this.polyline(c.points, c.color, c.opacity));
+    const pts = curves[0].points.map((p) => toThreePosition(p));
+    this.learningCenter.set(0, 0, 0);
+    for (const p of pts) this.learningCenter.add(p);
+    this.learningCenter.multiplyScalar(1 / pts.length);
+    let r = 0;
+    for (const p of pts) r = Math.max(r, p.distanceTo(this.learningCenter));
+    this.learningRadius = r * 2.1 + 6;
+  }
+
   /** Render one frame of the learning view (orbits the trajectory). */
   renderLearning(): void {
     this.updateCamera();
