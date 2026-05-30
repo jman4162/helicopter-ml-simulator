@@ -33,6 +33,12 @@ export class HeliScene {
   private cameraMode: CameraMode = 'chase';
   private orbitAngle = 0;
 
+  private readonly learningGroup = new THREE.Group();
+  private estimateLine: THREE.Line | null = null;
+  private learningActive = false;
+  private readonly learningCenter = new THREE.Vector3();
+  private learningRadius = 24;
+
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -66,6 +72,9 @@ export class HeliScene {
     );
     this.setpointMarker.visible = false;
     this.scene.add(this.setpointMarker);
+
+    this.learningGroup.visible = false;
+    this.scene.add(this.learningGroup);
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -266,7 +275,84 @@ export class HeliScene {
     this.setpointMarker.visible = false;
   }
 
+  // --- Apprenticeship-learning visualization -------------------------------
+
+  private polyline(
+    positionsNED: { x: number; y: number; z: number }[],
+    color: number,
+    opacity: number,
+  ): THREE.Line {
+    const pts = positionsNED.map((p) => toThreePosition(p));
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    return new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+  }
+
+  /** Switch into the learning view: hide the helicopter, show the curve group. */
+  enterLearningView(): void {
+    this.heli.visible = false;
+    this.trailLine.visible = false;
+    this.refLine.visible = false;
+    this.setpointMarker.visible = false;
+    this.learningGroup.visible = true;
+    this.learningActive = true;
+  }
+
+  exitLearningView(): void {
+    this.clearLearning();
+    this.learningGroup.visible = false;
+    this.learningActive = false;
+    this.heli.visible = true;
+  }
+
+  private clearLearning(): void {
+    for (const child of [...this.learningGroup.children]) {
+      this.learningGroup.remove(child);
+      ((child as THREE.Line).geometry as THREE.BufferGeometry).dispose();
+    }
+    this.estimateLine = null;
+  }
+
+  /** Draw the demonstrations (faint), the ground truth (green) and the current estimate (amber). */
+  setLearningCurves(demos: { x: number; y: number; z: number }[][], truth: { x: number; y: number; z: number }[], estimate: { x: number; y: number; z: number }[]): void {
+    this.clearLearning();
+    for (const d of demos) this.learningGroup.add(this.polyline(d, 0x8b97a8, 0.14));
+    this.learningGroup.add(this.polyline(truth, 0x5ee0a0, 0.95));
+    this.estimateLine = this.polyline(estimate, 0xf6b73c, 1);
+    this.learningGroup.add(this.estimateLine);
+
+    // Orbit center = truth centroid (Three coords); radius from its extent.
+    const pts = truth.map((p) => toThreePosition(p));
+    this.learningCenter.set(0, 0, 0);
+    for (const p of pts) this.learningCenter.add(p);
+    this.learningCenter.multiplyScalar(1 / pts.length);
+    let r = 0;
+    for (const p of pts) r = Math.max(r, p.distanceTo(this.learningCenter));
+    this.learningRadius = r * 2.1 + 6;
+  }
+
+  updateEstimateCurve(estimate: { x: number; y: number; z: number }[]): void {
+    if (!this.estimateLine) return;
+    this.estimateLine.geometry.dispose();
+    this.estimateLine.geometry = new THREE.BufferGeometry().setFromPoints(estimate.map((p) => toThreePosition(p)));
+  }
+
+  /** Render one frame of the learning view (orbits the trajectory). */
+  renderLearning(): void {
+    this.updateCamera();
+  }
+
   private updateCamera(): void {
+    if (this.learningActive) {
+      this.orbitAngle += 0.0035;
+      this.camera.position.set(
+        this.learningCenter.x + Math.cos(this.orbitAngle) * this.learningRadius,
+        this.learningCenter.y + this.learningRadius * 0.5,
+        this.learningCenter.z + Math.sin(this.orbitAngle) * this.learningRadius,
+      );
+      this.camera.lookAt(this.learningCenter);
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
     const target = this.heli.position;
     if (this.cameraMode === 'chase') {
       // Sit behind/above the helicopter's heading.

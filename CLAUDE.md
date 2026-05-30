@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 An interactive, educational **helicopter flight simulator** implementing Abbeel, Coates & Ng,
 *Autonomous Helicopter Aerobatics through Apprenticeship Learning* (IJRR 2010, the included
 `AbbeelCoatesNg_IJRR2010.pdf`). Web-first: TypeScript + Vite + Three.js, everything runs in the
-browser. The project is built in phases; **Phases 1–2 (physics + manual flight; autonomous
-LQR/MPC control) are complete**, Phases 3–5 (apprenticeship learning, system ID, lessons) upcoming.
+browser. The project is built in phases; **Phases 1–3 (physics + manual flight; autonomous
+LQR/MPC control; apprenticeship trajectory learning) are complete**, Phases 4–5 (system ID,
+lessons) upcoming.
 
 ## Commands
 
@@ -42,10 +43,19 @@ never import upward.
   `HoverController` (constant-gain hover/setpoint hold) and `TrajectoryController` (TVLQR maneuver
   tracking). `maneuvers.ts`: feasible-by-construction references (model rollouts) for forward
   flight, square, in-place flip, loop.
+- `src/learning/` — apprenticeship trajectory learning (paper §4), linear-Gaussian form.
+  `synthetic.ts`: seeded generator turning an ideal trajectory into noisy, time-warped, drifting
+  demos. `trajectory.ts`: `dtwAlign` (forward 1–3 step DTW for demo→hidden, Eq. 4), a
+  constant-velocity RTS Kalman smoother, the `learnTrajectory` EM loop (records per-iteration
+  snapshots + RMSE history), `pathRmse` (classic DTW, the path-similarity metric — note
+  `dtwAlign` is NOT a valid metric for similar-length sequences). `airshow.ts`: the figure-eight
+  ground-truth path. Dimension-general; the demo runs on 3-D position.
 - `src/ui/` — `input.ts` (keyboard momentary cyclic/yaw + held collective; RC-style gamepad;
-  autopilot keys H/1-4/G/M), `hud.ts` (overlay; quaternion→Euler; autopilot panel), `styles.css`.
+  autopilot keys H/1-4/G/M, learning key L), `hud.ts` (flight overlay + learning panel;
+  quaternion→Euler), `styles.css`.
 - `src/main.ts` — fixed-timestep (1/100 s) accumulator sim loop with an autopilot state machine
-  (manual / hover-hold / maneuver), wind-gust injector, and a soft ground floor; render once per rAF.
+  (manual / hover-hold / maneuver), wind-gust injector, soft ground floor, and a separate
+  apprenticeship-learning mode (L) that animates EM convergence; render once per rAF.
 
 ## Conventions that matter
 

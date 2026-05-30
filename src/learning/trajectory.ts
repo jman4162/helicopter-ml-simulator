@@ -191,6 +191,7 @@ const rtsSmoothScalar = (obs: (Obs | null)[], q: number): number[] => {
 export interface LearnResult {
   estimate: Traj; // recovered intended trajectory (hiddenLength × dim)
   initial: Traj; // naive time-unaligned average (the baseline EM improves on)
+  snapshots: Traj[]; // estimate after each step (snapshots[0] = initial), for animation
   alignments: number[][]; // τ per demo
   history: { iteration: number; rmse?: number }[];
   hiddenLength: number;
@@ -278,6 +279,7 @@ export const learnTrajectory = (
 
   const initial = naiveAverage(demos, T, dim);
   let estimate: Traj = initial;
+  const snapshots: Traj[] = [initial];
   const history: { iteration: number; rmse?: number }[] = [
     { iteration: 0, rmse: truth ? pathRmse(estimate, truth) : undefined }, // naive baseline
   ];
@@ -310,8 +312,9 @@ export const learnTrajectory = (
     const cols = Array.from({ length: dim }, (_, d) => rtsSmoothScalar(obs[d], opts.processVar));
     estimate = Array.from({ length: T }, (_, t) => cols.map((c) => c[t]));
 
+    snapshots.push(estimate);
     history.push({ iteration: it, rmse: truth ? pathRmse(estimate, truth) : undefined });
   }
 
-  return { estimate, initial, alignments, history, hiddenLength: T };
+  return { estimate, initial, snapshots, alignments, history, hiddenLength: T };
 };

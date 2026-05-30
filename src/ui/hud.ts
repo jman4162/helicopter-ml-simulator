@@ -22,9 +22,40 @@ const bar = (label: string, value: number): string => {
   return `<div class="bar"><span>${label}</span><div class="track"><div class="fill" style="left:${left}%;width:${width}%"></div></div><em>${value.toFixed(2)}</em></div>`;
 };
 
+export interface LearningInfo {
+  iteration: number;
+  totalIterations: number;
+  rmse: number;
+  naiveRmse: number;
+  demoCount: number;
+  posNoise: number;
+  done: boolean;
+}
+
 export class Hud {
   private last = 0;
   constructor(private readonly el: HTMLElement) {}
+
+  /** Render the apprenticeship-learning panel (replaces flight panels in learning mode). */
+  showLearning(info: LearningInfo, fps: number): void {
+    const pct = info.naiveRmse > 0 ? (100 * (1 - info.rmse / info.naiveRmse)).toFixed(0) : '0';
+    this.el.innerHTML = `
+      <div class="panel">
+        <div class="title">APPRENTICESHIP LEARNING</div>
+        <div class="row"><span>demos</span><b>${info.demoCount} (noise ${info.posNoise.toFixed(2)})</b></div>
+        <div class="row"><span>EM iteration</span><b class="on">${info.iteration} / ${info.totalIterations}${info.done ? ' ✓' : ''}</b></div>
+        <div class="row"><span>recovery err</span><b>${info.rmse.toFixed(3)}</b></div>
+        <div class="row"><span>naive average</span><b>${info.naiveRmse.toFixed(3)}</b></div>
+        <div class="row"><span>error vs naive</span><b class="on">−${pct}%</b></div>
+      </div>
+      <div class="panel legend">
+        <div class="title">LEGEND</div>
+        <div class="row"><span><i class="sw demo"></i> demonstrations</span><b>${info.demoCount}</b></div>
+        <div class="row"><span><i class="sw truth"></i> ground truth</span><b></b></div>
+        <div class="row"><span><i class="sw est"></i> recovered</span><b></b></div>
+      </div>
+      <div class="panel meta"><span>L new demos · M exit</span><span>${fps.toFixed(0)} fps</span></div>`;
+  }
 
   update(
     state: HeliState,

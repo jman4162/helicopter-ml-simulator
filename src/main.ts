@@ -7,6 +7,9 @@ import { boxminus } from './control/linearize';
 import { buildManeuver, Reference } from './control/maneuvers';
 import { vec3, Vec3 } from './math/vec3';
 import { rotate, rotateInverse } from './math/quaternion';
+import { generateDemos, defaultDemoOptions } from './learning/synthetic';
+import { learnTrajectory, defaultLearnOptions, LearnResult } from './learning/trajectory';
+import { airshowPath, toXYZ } from './learning/airshow';
 
 const params = defaultParams();
 const FIXED_DT = 1 / 100; // physics + control rate
@@ -51,6 +54,35 @@ let activeRef: Reference | null = null;
 
 let gustTimer = 0;
 let gustVec: Vec3 = vec3();
+
+// --- Apprenticeship-learning mode. ---
+let learningMode = false;
+let learn: LearnResult | null = null;
+let learnDemoCount = 0;
+let snapIdx = 0;
+let snapTimer = 0;
+let learnSeed = 1;
+const SNAP_INTERVAL = 0.7; // seconds per EM iteration shown
+
+const enterOrRegenLearning = (): void => {
+  const truth = airshowPath();
+  const opts = { ...defaultDemoOptions, seed: learnSeed++ };
+  const { demos } = generateDemos(truth, opts);
+  learn = learnTrajectory(demos, defaultLearnOptions, truth);
+  learnDemoCount = demos.length;
+  scene.setLearningCurves(demos.map(toXYZ), toXYZ(truth), toXYZ(learn.snapshots[0]));
+  scene.enterLearningView();
+  learningMode = true;
+  snapIdx = 0;
+  snapTimer = 0;
+};
+
+const exitLearning = (): void => {
+  scene.exitLearningView();
+  learningMode = false;
+  learn = null;
+  toManual();
+};
 
 const toManual = (): void => {
   mode = 'manual';
@@ -100,6 +132,37 @@ const frame = (now: number): void => {
   const wall = (now - prev) / 1000;
   prev = now;
   fps = fps * 0.9 + (1 / Math.max(wall, 1e-3)) * 0.1;
+
+  // --- Apprenticeship-learning mode (separate from the flight loop). ---
+  if (input.consumeLearning()) enterOrRegenLearning();
+  if (learningMode) {
+    if (input.consumeManual() || input.consumeReset()) {
+      exitLearning();
+    } else {
+      snapTimer += wall;
+      if (learn && snapIdx < learn.snapshots.length - 1 && snapTimer >= SNAP_INTERVAL) {
+        snapIdx++;
+        snapTimer = 0;
+        scene.updateEstimateCurve(toXYZ(learn.snapshots[snapIdx]));
+      }
+      scene.renderLearning();
+      if (learn)
+        hud.showLearning(
+          {
+            iteration: snapIdx,
+            totalIterations: learn.snapshots.length - 1,
+            rmse: learn.history[snapIdx].rmse!,
+            naiveRmse: learn.history[0].rmse!,
+            demoCount: learnDemoCount,
+            posNoise: defaultDemoOptions.posNoise,
+            done: snapIdx >= learn.snapshots.length - 1,
+          },
+          fps,
+        );
+      requestAnimationFrame(frame);
+      return;
+    }
+  }
 
   // --- Discrete events / mode transitions. ---
   if (input.consumeReset()) {

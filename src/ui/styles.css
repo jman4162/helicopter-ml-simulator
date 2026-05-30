@@ -75,6 +75,11 @@ html, body {
 
 .panel.meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); min-width: 230px; }
 
+.sw { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.sw.demo { background: #8b97a8; opacity: 0.6; }
+.sw.truth { background: #5ee0a0; }
+.sw.est { background: #f6b73c; }
+
 #help {
   position: absolute;
   bottom: 16px;
