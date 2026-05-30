@@ -22,6 +22,22 @@ export const transpose = (a: Matrix): Matrix => {
   return out;
 };
 
+export const matAdd = (a: Matrix, b: Matrix): Matrix =>
+  a.map((row, i) => row.map((v, j) => v + b[i][j]));
+
+export const matSub = (a: Matrix, b: Matrix): Matrix =>
+  a.map((row, i) => row.map((v, j) => v - b[i][j]));
+
+export const matScale = (a: Matrix, s: number): Matrix => a.map((row) => row.map((v) => v * s));
+
+/** Symmetrize: ½(A + Aᵀ). Keeps Riccati iterates numerically symmetric. */
+export const symmetrize = (a: Matrix): Matrix => {
+  const n = a.length;
+  const out = zeros(n, n);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) out[i][j] = 0.5 * (a[i][j] + a[j][i]);
+  return out;
+};
+
 export const matMul = (a: Matrix, b: Matrix): Matrix => {
   const n = a.length;
   const m = b[0].length;

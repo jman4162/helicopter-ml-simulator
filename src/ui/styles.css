@@ -50,6 +50,7 @@ html, body {
 .row { display: flex; justify-content: space-between; font-size: 12px; line-height: 1.7; }
 .row span { color: var(--muted); }
 .row b { font-weight: 600; }
+.row b.on { color: var(--accent); }
 
 .bar { display: flex; align-items: center; gap: 8px; font-size: 11px; margin: 3px 0; }
 .bar span { color: var(--muted); width: 56px; white-space: pre; }

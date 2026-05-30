@@ -1,4 +1,14 @@
 import { Control, HeliParams, hoverCollective } from '../physics/heli';
+import { ManeuverId } from '../control/maneuvers';
+
+const MANEUVER_KEYS: Record<string, ManeuverId> = {
+  '1': 'forward',
+  '2': 'square',
+  '3': 'flip',
+  '4': 'loop',
+};
+
+const STICK_KEYS = ['w', 's', 'a', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
 /**
  * Manual flight input. Cyclic and yaw are momentary (spring back to center when
@@ -11,6 +21,10 @@ export class InputController {
   private collective: number;
   resetRequested = false;
   cameraCycleRequested = false;
+  private pendingHover = false;
+  private pendingGust = false;
+  private pendingManual = false;
+  private pendingManeuver: ManeuverId | null = null;
 
   constructor(private readonly params: HeliParams) {
     this.collective = hoverCollective(params);
@@ -23,6 +37,10 @@ export class InputController {
     if (down) {
       if (k === 'r') this.resetRequested = true;
       if (k === 'c') this.cameraCycleRequested = true;
+      if (k === 'h') this.pendingHover = true;
+      if (k === 'g') this.pendingGust = true;
+      if (k === 'm') this.pendingManual = true;
+      if (MANEUVER_KEYS[k]) this.pendingManeuver = MANEUVER_KEYS[k];
     }
     // Track movement keys; prevent page scroll on arrows/space.
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(k)) e.preventDefault();
@@ -33,6 +51,40 @@ export class InputController {
   /** Reset the collective back to hover (called on simulation reset). */
   resetThrottle(): void {
     this.collective = hoverCollective(this.params);
+  }
+
+  /** Sync the held collective (e.g. to the autopilot output on disengage, to avoid a jump). */
+  setCollective(value: number): void {
+    this.collective = Math.min(1, Math.max(-1, value));
+  }
+
+  /** True while the pilot is touching the cyclic/collective/pedals (used to drop autopilot). */
+  manualStickActive(): boolean {
+    return STICK_KEYS.some((k) => this.keys.has(k));
+  }
+
+  consumeHover(): boolean {
+    const v = this.pendingHover;
+    this.pendingHover = false;
+    return v;
+  }
+
+  consumeGust(): boolean {
+    const v = this.pendingGust;
+    this.pendingGust = false;
+    return v;
+  }
+
+  consumeManual(): boolean {
+    const v = this.pendingManual;
+    this.pendingManual = false;
+    return v;
+  }
+
+  consumeManeuver(): ManeuverId | null {
+    const v = this.pendingManeuver;
+    this.pendingManeuver = null;
+    return v;
   }
 
   private gamepad(): Gamepad | null {

@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 An interactive, educational **helicopter flight simulator** implementing Abbeel, Coates & Ng,
 *Autonomous Helicopter Aerobatics through Apprenticeship Learning* (IJRR 2010, the included
 `AbbeelCoatesNg_IJRR2010.pdf`). Web-first: TypeScript + Vite + Three.js, everything runs in the
-browser. The project is built in phases (see `PLAN`/below); **Phase 1 (physics + manual flight) is
-complete**, Phases 2–5 (control, apprenticeship learning, system ID, lessons) are upcoming.
+browser. The project is built in phases; **Phases 1–2 (physics + manual flight; autonomous
+LQR/MPC control) are complete**, Phases 3–5 (apprenticeship learning, system ID, lessons) upcoming.
 
 ## Commands
 
@@ -35,9 +35,17 @@ never import upward.
   rotation `M`, det +1, so no mirroring) — all frame mapping goes through here. `scene.ts` builds
   the stylized helicopter in **body NED coordinates** and lets the root group's transform map it to
   screen, so geometry reads the same as the math.
-- `src/ui/` — `input.ts` (keyboard momentary cyclic/yaw + held collective; RC-style gamepad),
-  `hud.ts` (overlay; quaternion→Euler for display), `styles.css`.
-- `src/main.ts` — fixed-timestep (1/200 s) accumulator sim loop; render once per rAF.
+- `src/control/` — autonomous control. `linearize.ts`: the 12-D error/tangent state
+  (`boxplus`/`boxminus`, axis-angle attitude error) and finite-difference A/B Jacobians of the
+  discrete dynamics. `lqr.ts`: `dlqr` (infinite-horizon Riccati, for setpoint hold) and `tvlqr`
+  (finite-horizon backward pass, for trajectory tracking) + `feedback`. `autopilot.ts`:
+  `HoverController` (constant-gain hover/setpoint hold) and `TrajectoryController` (TVLQR maneuver
+  tracking). `maneuvers.ts`: feasible-by-construction references (model rollouts) for forward
+  flight, square, in-place flip, loop.
+- `src/ui/` — `input.ts` (keyboard momentary cyclic/yaw + held collective; RC-style gamepad;
+  autopilot keys H/1-4/G/M), `hud.ts` (overlay; quaternion→Euler; autopilot panel), `styles.css`.
+- `src/main.ts` — fixed-timestep (1/100 s) accumulator sim loop with an autopilot state machine
+  (manual / hover-hold / maneuver), wind-gust injector, and a soft ground floor; render once per rAF.
 
 ## Conventions that matter
 

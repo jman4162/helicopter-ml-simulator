@@ -5,8 +5,9 @@ An interactive, educational simulator built from Abbeel, Coates & Ng,
 (IJRR 2010). It aims to make the paper's three pillars — **physics**, **machine learning**, and
 **control** — tangible and visual, all running live in the browser.
 
-> **Status:** Phase 1 complete — faithful rigid-body flight dynamics, a stylized 3D view, and
-> manual flight. Control (LQR/MPC), apprenticeship trajectory learning, and system ID are next.
+> **Status:** Phases 1–2 complete — faithful rigid-body flight dynamics with a stylized 3D view and
+> manual flight, plus an autonomous LQR autopilot (hover-hold, aerobatic maneuvers, wind recovery).
+> Apprenticeship trajectory learning and system ID are next.
 
 ## Quick start
 
@@ -26,6 +27,19 @@ npm run dev      # http://localhost:5173
 | `R` | reset · `C` | cycle camera |
 
 A connected gamepad maps to the two sticks (mode-2 RC layout).
+
+### Let it fly itself (autopilot)
+
+| Key | Action |
+| --- | --- |
+| `H` | hold a hover at the current position |
+| `1` / `2` | forward flight / square pattern |
+| `3` / `4` | in-place flip / loop |
+| `G` | inject a wind gust (watch the LQR recover) |
+| `M` | back to manual (or just touch a flight key) |
+
+The autopilot is a Gauss–Newton LQR (the paper's control approach): an infinite-horizon LQR holds
+hover, and a time-varying LQR tracks aerobatic maneuvers around feasible reference trajectories.
 
 ## What's modeled
 
@@ -47,7 +61,7 @@ See [`CLAUDE.md`](CLAUDE.md) for architecture, conventions, and the paper-sectio
 ## Roadmap
 
 1. ✅ **Physics + manual flight** — rigid-body dynamics, 3D viz, HUD.
-2. **Control** — Gauss–Newton LQR / receding-horizon MPC; aerobatic maneuvers; wind recovery.
+2. ✅ **Control** — Gauss–Newton LQR autopilot; hover-hold, aerobatic maneuvers, wind recovery.
 3. **Apprenticeship learning** — infer an intended trajectory from noisy, time-warped demos
    (EM + dynamic time warping); the visual centerpiece.
 4. **System identification** — fit the dynamics coefficients from logged flight data.

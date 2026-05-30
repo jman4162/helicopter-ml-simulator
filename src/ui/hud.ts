@@ -26,7 +26,14 @@ export class Hud {
   private last = 0;
   constructor(private readonly el: HTMLElement) {}
 
-  update(state: HeliState, control: Control, cameraMode: string, fps: number, time: number): void {
+  update(
+    state: HeliState,
+    control: Control,
+    cameraMode: string,
+    fps: number,
+    time: number,
+    auto: { mode: string; label: string; trackingError?: number },
+  ): void {
     if (time - this.last < 1 / 15) return; // throttle DOM updates to ~15 Hz
     this.last = time;
 
@@ -58,6 +65,11 @@ export class Hud {
         ${bar('pitch u₂', control.u2)}
         ${bar('yaw   u₃', control.u3)}
         ${bar('coll  u₄', control.u4)}
+      </div>
+      <div class="panel">
+        <div class="title">AUTOPILOT</div>
+        <div class="row"><span>mode</span><b class="${auto.mode === 'manual' ? '' : 'on'}">${auto.label}</b></div>
+        ${auto.trackingError !== undefined ? `<div class="row"><span>track err</span><b>${auto.trackingError.toFixed(2)}</b></div>` : ''}
       </div>
       <div class="panel meta">
         <span>cam: ${cameraMode}</span><span>${fps.toFixed(0)} fps</span>

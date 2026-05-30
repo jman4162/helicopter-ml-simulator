@@ -27,6 +27,9 @@ export class HeliScene {
   private readonly trailLine: THREE.Line;
   private static readonly TRAIL_MAX = 600;
 
+  private readonly refLine: THREE.Line;
+  private readonly setpointMarker: THREE.Mesh;
+
   private cameraMode: CameraMode = 'chase';
   private orbitAngle = 0;
 
@@ -50,6 +53,19 @@ export class HeliScene {
     geo.setDrawRange(0, 0);
     this.trailLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x4fd1c5, transparent: true, opacity: 0.7 }));
     this.scene.add(this.trailLine);
+
+    // Reference (target) trajectory ghost, shown during autopilot maneuvers.
+    this.refLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0xf6b73c, dashSize: 0.4, gapSize: 0.25, transparent: true, opacity: 0.85 }));
+    this.refLine.visible = false;
+    this.scene.add(this.refLine);
+
+    // Setpoint marker, shown during hover-hold.
+    this.setpointMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 16, 12),
+      new THREE.MeshBasicMaterial({ color: 0xf6b73c, transparent: true, opacity: 0.5, wireframe: true }),
+    );
+    this.setpointMarker.visible = false;
+    this.scene.add(this.setpointMarker);
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -182,6 +198,29 @@ export class HeliScene {
   resetTrail(): void {
     this.trail.length = 0;
     this.trailLine.geometry.setDrawRange(0, 0);
+  }
+
+  /** Draw a reference trajectory (NED positions) as a dashed ghost line. */
+  showReference(positions: { x: number; y: number; z: number }[]): void {
+    const pts = positions.map((p) => toThreePosition(p));
+    this.refLine.geometry.dispose();
+    this.refLine.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+    (this.refLine as THREE.Line).computeLineDistances();
+    this.refLine.visible = true;
+  }
+
+  hideReference(): void {
+    this.refLine.visible = false;
+  }
+
+  /** Show/hide the hover setpoint marker at a NED position. */
+  showSetpoint(p: { x: number; y: number; z: number }): void {
+    toThreePosition(p, this.setpointMarker.position);
+    this.setpointMarker.visible = true;
+  }
+
+  hideSetpoint(): void {
+    this.setpointMarker.visible = false;
   }
 
   private updateCamera(): void {
