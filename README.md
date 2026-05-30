@@ -1,5 +1,8 @@
 # Helicopter Apprenticeship-Learning Simulator
 
+**▶ [Live demo](https://jman4162.github.io/helicopter-ml-simulator/)** — runs in your browser
+(press **`T`** for the guided tour).
+
 An interactive, educational simulator built from Abbeel, Coates & Ng,
 *[Autonomous Helicopter Aerobatics through Apprenticeship Learning](AbbeelCoatesNg_IJRR2010.pdf)*
 (IJRR 2010). It aims to make the paper's three pillars — **physics**, **machine learning**, and
