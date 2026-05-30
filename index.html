@@ -14,6 +14,11 @@
     <div id="app">
       <canvas id="scene"></canvas>
       <div id="hud"></div>
+      <div id="tour" style="display: none"></div>
+      <div id="plotwrap">
+        <div class="plot-label">ATTITUDE °<span><i class="sw truth"></i>roll <i class="sw est"></i>pitch</span></div>
+        <canvas id="plot"></canvas>
+      </div>
       <div id="help">
         <strong>Manual flight</strong>
         <div class="keys">
@@ -31,7 +36,12 @@
           <span>G</span><span>wind gust (test recovery)</span>
           <span>L</span><span>apprenticeship learning demo</span>
           <span>I</span><span>system identification demo</span>
+          <span>O</span><span>autonomous airshow</span>
           <span>M</span><span>back to manual</span>
+        </div>
+        <strong>Guided tour</strong>
+        <div class="keys">
+          <span>T</span><span>start / exit tour &nbsp;·&nbsp; N / B step</span>
         </div>
         <small>Touching a flight key also returns to manual. Gamepad maps to the two sticks.</small>
       </div>

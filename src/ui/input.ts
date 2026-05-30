@@ -26,6 +26,10 @@ export class InputController {
   private pendingManual = false;
   private pendingLearning = false;
   private pendingSysid = false;
+  private pendingAirshow = false;
+  private pendingTour = false;
+  private pendingTourNext = false;
+  private pendingTourBack = false;
   private pendingManeuver: ManeuverId | null = null;
 
   constructor(private readonly params: HeliParams) {
@@ -44,6 +48,10 @@ export class InputController {
       if (k === 'm') this.pendingManual = true;
       if (k === 'l') this.pendingLearning = true;
       if (k === 'i') this.pendingSysid = true;
+      if (k === 'o') this.pendingAirshow = true;
+      if (k === 't') this.pendingTour = true;
+      if (k === 'n') this.pendingTourNext = true;
+      if (k === 'b') this.pendingTourBack = true;
       if (MANEUVER_KEYS[k]) this.pendingManeuver = MANEUVER_KEYS[k];
     }
     // Track movement keys; prevent page scroll on arrows/space.
@@ -100,6 +108,30 @@ export class InputController {
   consumeSysid(): boolean {
     const v = this.pendingSysid;
     this.pendingSysid = false;
+    return v;
+  }
+
+  consumeAirshow(): boolean {
+    const v = this.pendingAirshow;
+    this.pendingAirshow = false;
+    return v;
+  }
+
+  consumeTour(): boolean {
+    const v = this.pendingTour;
+    this.pendingTour = false;
+    return v;
+  }
+
+  consumeTourNext(): boolean {
+    const v = this.pendingTourNext;
+    this.pendingTourNext = false;
+    return v;
+  }
+
+  consumeTourBack(): boolean {
+    const v = this.pendingTourBack;
+    this.pendingTourBack = false;
     return v;
   }
 

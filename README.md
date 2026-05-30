@@ -5,11 +5,11 @@ An interactive, educational simulator built from Abbeel, Coates & Ng,
 (IJRR 2010). It aims to make the paper's three pillars — **physics**, **machine learning**, and
 **control** — tangible and visual, all running live in the browser.
 
-> **Status:** Phases 1–4 complete — faithful rigid-body flight dynamics with a stylized 3D view and
-> manual flight; an autonomous LQR autopilot (hover-hold, aerobatic maneuvers, wind recovery);
-> apprenticeship trajectory learning (recover a clean intended path from noisy, time-warped demos);
-> and system identification (re-learn the dynamics coefficients from flight data). A guided lesson
-> layer is next.
+> **Status:** Complete (all five phases) — faithful rigid-body flight dynamics with a stylized 3D
+> view and manual flight; an autonomous LQR autopilot (hover-hold, aerobatic maneuvers, wind
+> recovery); apprenticeship trajectory learning (recover a clean intended path from noisy,
+> time-warped demos); system identification (re-learn the dynamics from flight data); and an
+> educational layer — a guided tour with equations, an autonomous airshow, and live telemetry.
 
 ## Quick start
 
@@ -40,6 +40,8 @@ A connected gamepad maps to the two sticks (mode-2 RC layout).
 | `G` | inject a wind gust (watch the LQR recover) |
 | `L` | apprenticeship-learning demo (watch EM recover an intended path from noisy demos) |
 | `I` | system-identification demo (fit the dynamics from flight data; true vs predicted) |
+| `O` | autonomous airshow (chains maneuvers) |
+| `T` | guided tour (`N`/`B` to step through the lessons) |
 | `M` | back to manual (or just touch a flight key) |
 
 The autopilot is a Gauss–Newton LQR (the paper's control approach): an infinite-horizon LQR holds
@@ -69,4 +71,6 @@ See [`CLAUDE.md`](CLAUDE.md) for architecture, conventions, and the paper-sectio
 3. ✅ **Apprenticeship learning** — infer an intended trajectory from noisy, time-warped demos
    (EM + dynamic time warping); the visual centerpiece.
 4. ✅ **System identification** — fit the dynamics coefficients from logged flight data.
-5. **Educational layer** — equation overlays, plots, an airshow sequencer, guided lessons.
+5. ✅ **Educational layer** — a guided tour with equations, an autonomous airshow, telemetry plot.
+
+New here? Press **`T`** for the guided tour — it walks through all three pillars in order.

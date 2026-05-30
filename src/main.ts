@@ -4,9 +4,11 @@ import { InputController } from './ui/input';
 import { Hud } from './ui/hud';
 import { HoverController, TrajectoryController } from './control/autopilot';
 import { boxminus } from './control/linearize';
-import { buildManeuver, Reference } from './control/maneuvers';
+import { AIRSHOW_SEQUENCE, buildManeuver, ManeuverId, Reference } from './control/maneuvers';
 import { vec3, Vec3 } from './math/vec3';
-import { rotate, rotateInverse } from './math/quaternion';
+import { rotate, rotateInverse, Quat } from './math/quaternion';
+import { TOUR, TourStep } from './ui/tour';
+import { StripChart } from './ui/plot';
 import { generateDemos, defaultDemoOptions } from './learning/synthetic';
 import { learnTrajectory, defaultLearnOptions, LearnResult } from './learning/trajectory';
 import { airshowPath, toXYZ } from './learning/airshow';
@@ -35,11 +37,25 @@ const clampGround = (s: HeliState): void => {
 
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const hudEl = document.getElementById('hud') as HTMLElement;
+const tourEl = document.getElementById('tour') as HTMLElement;
+const plotWrap = document.getElementById('plotwrap') as HTMLElement;
 
 const scene = new HeliScene(canvas);
 const input = new InputController(params);
 const hud = new Hud(hudEl);
 const hover = new HoverController(params, FIXED_DT);
+const chart = new StripChart(
+  document.getElementById('plot') as HTMLCanvasElement,
+  [{ color: '#5ee0a0', label: 'roll' }, { color: '#f6b73c', label: 'pitch' }],
+  180,
+);
+
+/** Roll & pitch (degrees) from a body->world quaternion, for the telemetry plot. */
+const rollPitchDeg = (q: Quat): [number, number] => {
+  const roll = Math.atan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y));
+  const sp = Math.max(-1, Math.min(1, 2 * (q.w * q.y - q.z * q.x)));
+  return [(roll * 180) / Math.PI, (Math.asin(sp) * 180) / Math.PI];
+};
 
 let state = spawn();
 let cameraMode = 'chase';
@@ -55,6 +71,12 @@ let activeRef: Reference | null = null;
 
 let gustTimer = 0;
 let gustVec: Vec3 = vec3();
+
+// --- Airshow (autonomous maneuver chain) and guided tour. ---
+let airshowActive = false;
+let airshowQueue: ManeuverId[] = [];
+let tourActive = false;
+let tourIdx = 0;
 
 // --- Apprenticeship-learning mode. ---
 let learningMode = false;
@@ -141,6 +163,7 @@ const exitSysid = (): void => {
 
 const toManual = (): void => {
   mode = 'manual';
+  airshowActive = false;
   input.setCollective(lastControl.u4); // resume manual from the current collective
   traj = null;
   activeRef = null;
@@ -173,6 +196,68 @@ const triggerGust = (): void => {
   gustTimer = 0.18;
 };
 
+/** Leave the overlay (learning / system-ID) modes if active, restoring the heli. */
+const leaveOverlayModes = (): void => {
+  if (learningMode || sysidMode) {
+    scene.exitLearningView();
+    learningMode = false;
+    sysidMode = false;
+  }
+};
+
+const startAirshow = (): void => {
+  leaveOverlayModes();
+  airshowQueue = AIRSHOW_SEQUENCE.slice();
+  airshowActive = true;
+  startManeuver(buildManeuver(airshowQueue.shift()!, params, state, FIXED_DT));
+};
+
+// --- Guided tour. ---
+const applyTourStep = (s: TourStep): void => {
+  leaveOverlayModes();
+  airshowActive = false;
+  switch (s.mode) {
+    case 'manual': toManual(); break;
+    case 'hover': toHold(); break;
+    case 'gust': toHold(); triggerGust(); break;
+    case 'flip': startManeuver(buildManeuver('flip', params, state, FIXED_DT)); break;
+    case 'learning': enterOrRegenLearning(); break;
+    case 'sysid': enterOrRegenSysid(); break;
+    case 'airshow': startAirshow(); break;
+  }
+};
+
+const renderTourPanel = (): void => {
+  const s = TOUR[tourIdx];
+  tourEl.innerHTML = `
+    <div class="tour-head"><span class="tag">${s.tag}</span><span class="count">${tourIdx + 1} / ${TOUR.length}</span></div>
+    <div class="tour-title">${s.title}</div>
+    <div class="tour-body">${s.body}</div>
+    ${s.equation ? `<div class="tour-eq">${s.equation}</div>` : ''}
+    <div class="tour-nav">◀ B &nbsp; back &nbsp;·&nbsp; next &nbsp; N ▶ &nbsp;·&nbsp; T exit</div>`;
+  tourEl.style.display = 'block';
+};
+
+const enterTour = (): void => {
+  tourActive = true;
+  tourIdx = 0;
+  applyTourStep(TOUR[0]);
+  renderTourPanel();
+};
+
+const exitTour = (): void => {
+  tourActive = false;
+  tourEl.style.display = 'none';
+  leaveOverlayModes();
+  toManual();
+};
+
+const tourGo = (delta: number): void => {
+  tourIdx = (tourIdx + delta + TOUR.length) % TOUR.length;
+  applyTourStep(TOUR[tourIdx]);
+  renderTourPanel();
+};
+
 const trackingError = (): number | undefined => {
   if (mode === 'maneuver' && traj) return Math.hypot(...boxminus(state, traj.referenceState(trajStep)));
   if (mode === 'hold') return Math.hypot(...boxminus(state, hover.setpoint));
@@ -188,6 +273,15 @@ const frame = (now: number): void => {
   prev = now;
   fps = fps * 0.9 + (1 / Math.max(wall, 1e-3)) * 0.1;
 
+  // --- Guided tour navigation (works in any mode). ---
+  if (input.consumeTour()) tourActive ? exitTour() : enterTour();
+  const tNext = input.consumeTourNext();
+  const tBack = input.consumeTourBack();
+  if (tourActive) {
+    if (tNext) tourGo(1);
+    if (tBack) tourGo(-1);
+  }
+
   // --- Apprenticeship-learning mode (separate from the flight loop). ---
   if (input.consumeLearning()) enterOrRegenLearning();
   if (learningMode) {
@@ -200,6 +294,7 @@ const frame = (now: number): void => {
         snapTimer = 0;
         scene.updateEstimateCurve(toXYZ(learn.snapshots[snapIdx]));
       }
+      plotWrap.style.display = 'none';
       scene.renderLearning();
       if (learn)
         hud.showLearning(
@@ -225,6 +320,7 @@ const frame = (now: number): void => {
     if (input.consumeManual() || input.consumeReset()) {
       exitSysid();
     } else {
+      plotWrap.style.display = 'none';
       scene.renderLearning();
       if (sysidInfo) hud.showSysid(sysidInfo, fps);
       requestAnimationFrame(frame);
@@ -241,9 +337,13 @@ const frame = (now: number): void => {
   }
   if (input.consumeCameraCycle()) cameraMode = scene.cycleCamera();
   if (input.consumeGust()) triggerGust();
+  if (input.consumeAirshow()) startAirshow();
 
   const maneuver = input.consumeManeuver();
-  if (maneuver) startManeuver(buildManeuver(maneuver, params, state, FIXED_DT));
+  if (maneuver) {
+    airshowActive = false;
+    startManeuver(buildManeuver(maneuver, params, state, FIXED_DT));
+  }
   if (input.consumeHover()) toHold();
   if (input.consumeManual() || (mode !== 'manual' && input.manualStickActive())) toManual();
 
@@ -263,7 +363,15 @@ const frame = (now: number): void => {
     } else {
       u = traj!.control(state, trajStep);
       trajStep++;
-      if (trajStep >= traj!.length) toHold(); // maneuver complete -> settle into hover
+      if (trajStep >= traj!.length) {
+        // Maneuver complete: chain the next airshow item, else settle into hover.
+        if (airshowActive && airshowQueue.length) {
+          startManeuver(buildManeuver(airshowQueue.shift()!, params, state, FIXED_DT));
+        } else {
+          airshowActive = false;
+          toHold();
+        }
+      }
     }
 
     state = step(params, state, u, FIXED_DT, dist);
@@ -279,6 +387,8 @@ const frame = (now: number): void => {
     label: mode === 'maneuver' ? activeRef?.name ?? 'maneuver' : MODE_LABEL[mode],
     trackingError: trackingError(),
   });
+  plotWrap.style.display = 'block';
+  chart.push(rollPitchDeg(state.orientation));
   requestAnimationFrame(frame);
 };
 

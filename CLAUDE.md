@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 An interactive, educational **helicopter flight simulator** implementing Abbeel, Coates & Ng,
 *Autonomous Helicopter Aerobatics through Apprenticeship Learning* (IJRR 2010, the included
 `AbbeelCoatesNg_IJRR2010.pdf`). Web-first: TypeScript + Vite + Three.js, everything runs in the
-browser. The project is built in phases; **Phases 1–4 (physics + manual flight; autonomous
-LQR/MPC control; apprenticeship trajectory learning; system identification) are complete**,
-Phase 5 (guided lessons / equation overlays) upcoming.
+browser. **All five phases are complete**: physics + manual flight; autonomous LQR/MPC control;
+apprenticeship trajectory learning; system identification; and the educational layer (guided tour,
+equation panels, airshow sequencer, telemetry plot).
 
 ## Commands
 
@@ -54,12 +54,14 @@ never import upward.
   A/B/C/D/D0, plus `predictionError` (open-loop simulation accuracy) and `rollout`; recovers the
   true coefficients to ~1–3%. Dimension-general; the trajectory demo runs on 3-D position.
 - `src/ui/` — `input.ts` (keyboard momentary cyclic/yaw + held collective; RC-style gamepad;
-  autopilot keys H/1-4/G/M, learning key L, system-ID key I), `hud.ts` (flight overlay + learning
-  and system-ID panels; quaternion→Euler), `styles.css`.
+  autopilot keys H/1-4/G/M, learning L, system-ID I, airshow O, tour T/N/B), `hud.ts` (flight
+  overlay + learning and system-ID panels; quaternion→Euler), `tour.ts` (ordered lesson steps with
+  equations + the mode each drives), `plot.ts` (canvas strip-chart), `styles.css`.
 - `src/main.ts` — fixed-timestep (1/100 s) accumulator sim loop with an autopilot state machine
-  (manual / hover-hold / maneuver), wind-gust injector, soft ground floor, plus two overlay modes
-  that hide the heli and orbit a curve group: apprenticeship learning (L, animates EM convergence)
-  and system identification (I, true-vs-fitted prediction). Render once per rAF.
+  (manual / hover-hold / maneuver), wind-gust injector, soft ground floor, an airshow sequencer
+  (chains maneuvers via `AIRSHOW_SEQUENCE`), a guided tour that drives each mode while showing the
+  matching lesson, two overlay modes (learning L / system-ID I) that hide the heli and orbit a
+  curve group, and a telemetry strip-chart. Render once per rAF.
 
 ## Conventions that matter
 

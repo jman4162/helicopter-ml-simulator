@@ -68,6 +68,9 @@ export type ManeuverId = 'forward' | 'square' | 'flip' | 'loop';
 
 export const MANEUVER_IDS: ManeuverId[] = ['forward', 'square', 'flip', 'loop'];
 
+/** Default autonomous airshow: the order maneuvers are chained in. */
+export const AIRSHOW_SEQUENCE: ManeuverId[] = ['forward', 'square', 'flip', 'loop'];
+
 /** Build a named maneuver reference starting from `start`. */
 export const buildManeuver = (
   id: ManeuverId,
