@@ -37,12 +37,12 @@ export class HeliScene {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    this.scene.background = new THREE.Color(0x0e1116);
-    this.scene.fog = new THREE.Fog(0x0e1116, 40, 140);
+    this.scene.fog = new THREE.Fog(0x1a2336, 50, 160);
 
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.05, 1000);
     this.camera.position.set(6, 4, 8);
 
+    this.addSky();
     this.addLights();
     this.addGround();
     this.buildHelicopter();
@@ -71,6 +71,40 @@ export class HeliScene {
     window.addEventListener('resize', () => this.resize());
   }
 
+  /** Vertical gradient sky (bright up, dark down) so "which way is up" reads instantly. */
+  private addSky(): void {
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(400, 32, 16),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        uniforms: {
+          topColor: { value: new THREE.Color(0x4f87c4) },
+          horizonColor: { value: new THREE.Color(0x9fb4cc) },
+          bottomColor: { value: new THREE.Color(0x0a0e14) },
+        },
+        vertexShader: `
+          varying vec3 vDir;
+          void main() {
+            vDir = normalize(position);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }`,
+        fragmentShader: `
+          varying vec3 vDir;
+          uniform vec3 topColor; uniform vec3 horizonColor; uniform vec3 bottomColor;
+          void main() {
+            float h = vDir.y;
+            vec3 c = h > 0.0
+              ? mix(horizonColor, topColor, smoothstep(0.0, 0.5, h))
+              : mix(horizonColor, bottomColor, smoothstep(0.0, -0.3, h));
+            gl_FragColor = vec4(c, 1.0);
+          }`,
+      }),
+    );
+    sky.renderOrder = -1;
+    this.scene.add(sky);
+  }
+
   private addLights(): void {
     this.scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x202024, 0.9));
     const sun = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -79,7 +113,16 @@ export class HeliScene {
   }
 
   private addGround(): void {
-    const grid = new THREE.GridHelper(200, 100, 0x3a4150, 0x21262f);
+    // Solid floor just under the grid, so everything below the grid reads as ground.
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(300, 64),
+      new THREE.MeshStandardMaterial({ color: 0x141b24, roughness: 1, metalness: 0 }),
+    );
+    ground.rotation.x = -Math.PI / 2; // lie flat, facing up
+    ground.position.y = -0.02;
+    this.scene.add(ground);
+
+    const grid = new THREE.GridHelper(200, 100, 0x4a5568, 0x2a3340);
     this.scene.add(grid);
     // World frame axes at the origin (Three coords): a teaching aid.
     const worldAxes = new THREE.AxesHelper(2);
